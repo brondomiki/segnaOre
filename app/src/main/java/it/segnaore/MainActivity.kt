@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -545,29 +546,53 @@ fun AccountCard(scope: CoroutineScope, toast: (String) -> Unit) {
     var newPw by remember { mutableStateOf("") }
 
     if (showPw) {
+        var newPw2 by remember { mutableStateOf("") }
+        var visible by remember { mutableStateOf(false) }
+        var pwError by remember { mutableStateOf<String?>(null) }
+        val transform = if (visible) VisualTransformation.None else PasswordVisualTransformation()
         AlertDialog(
             onDismissRequest = { showPw = false },
             title = { Text("Cambia password") },
             text = {
-                OutlinedTextField(
-                    value = newPw, onValueChange = { newPw = it },
-                    label = { Text("Nuova password (min. 6)") }, singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = newPw, onValueChange = { newPw = it; pwError = null },
+                        label = { Text("Nuova password (min. 6)") }, singleLine = true,
+                        visualTransformation = transform,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+                    OutlinedTextField(
+                        value = newPw2, onValueChange = { newPw2 = it; pwError = null },
+                        label = { Text("Ripeti la password") }, singleLine = true,
+                        visualTransformation = transform,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = visible, onCheckedChange = { visible = it })
+                        Spacer(Modifier.width(8.dp))
+                        Text("Mostra password")
+                    }
+                    pwError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
                     val pw = newPw
-                    showPw = false
-                    newPw = ""
-                    runCloud(scope, { busy = it }, toast) {
-                        Cloud.changePassword(context, pw)
-                        "Password cambiata"
+                    when {
+                        pw.length < 6 -> pwError = "Almeno 6 caratteri"
+                        pw != newPw2 -> pwError = "Le due password non coincidono"
+                        else -> {
+                            showPw = false
+                            newPw = ""
+                            runCloud(scope, { busy = it }, toast) {
+                                Cloud.changePassword(context, pw)
+                                "Password cambiata"
+                            }
+                        }
                     }
                 }) { Text("Cambia") }
             },
-            dismissButton = { TextButton(onClick = { showPw = false }) { Text("Annulla") } }
+            dismissButton = { TextButton(onClick = { showPw = false; newPw = "" }) { Text("Annulla") } }
         )
     }
 
@@ -585,10 +610,14 @@ fun AccountCard(scope: CoroutineScope, toast: (String) -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth()
                 )
+                var showLoginPw by remember { mutableStateOf(false) }
                 OutlinedTextField(
                     value = password, onValueChange = { password = it },
                     label = { Text("Password") }, singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (showLoginPw) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TextButton(onClick = { showLoginPw = !showLoginPw }) { Text(if (showLoginPw) "Nascondi" else "Mostra") }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -29,6 +29,7 @@
       <form id="loginForm" class="stack">
         <label>Email<input id="loginEmail" type="email" autocomplete="email" value="brondomiki@gmail.com" required /></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" minlength="6" required /></label>
+        <label class="check"><input type="checkbox" onchange="document.getElementById('loginPassword').type = this.checked ? 'text' : 'password'" /> Mostra password</label>
         <div class="row">
           <button type="submit" class="primary">Accedi</button>
           <button type="button" id="signupBtn" class="ghost">Registrati</button>
