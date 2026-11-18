@@ -3,6 +3,29 @@
 App Android che ogni giorno, a un orario stabilito, ti chiede quante ore hai lavorato.
 Puoi rispondere dalla notifica sul telefono oppure **a voce da Android Auto**, senza toccare lo schermo.
 
+## Novità versione 1.1
+
+- **Ore di viaggio/trasferta** in un campo separato (totale a parte, non conta per gli straordinari).
+- **Straordinari automatici**: lun-ven oltre 8 ore = straordinario; sabato tutto straordinario; domenica e festivi nazionali (Pasquetta compresa) = straordinario festivo.
+- **Filtro per periodo** (dal/al, questo mese, mese scorso, anno) con totali.
+- **Archivio mensile** con la somma di ogni mese.
+- **Export CSV** (si apre con Excel), **PDF** e **invio del report via email**.
+- **Account online** (Supabase): le ore si sincronizzano tra telefono e sito web.
+- **Report automatico**: il 1° di ogni mese alle 7:00 arriva a brondomiki@gmail.com il PDF del mese precedente.
+- **Comandi vocali** (anche da Android Auto): "otto e due di viaggio", "riepilogo", "invia report", "cancella".
+
+## Sito web (Vercel)
+
+La cartella `web/` è il sito: stessa base dati dell'app, con login, inserimento (anche con microfono), filtro, CSV, PDF ed email.
+Per pubblicarlo: vercel.com → Add New → Project → importa `brondomiki/segnaOre` → **Root Directory: `web`** → Framework: Other → Deploy.
+
+## Backend (Supabase, progetto "portafoglio")
+
+- Tabelle `segnaore_entries` e `segnaore_settings` con sicurezza per utente (RLS).
+- Funzione `segnaore-report` (`supabase/functions/`): genera il PDF e lo invia con Resend.
+- Job `segnaore-report-mensile` (pg_cron) il 1° del mese alle 06:00 UTC.
+- Segreto necessario: `RESEND_API_KEY` (Edge Functions → Secrets).
+
 ## Come funziona
 
 - **Promemoria**: arriva all'orario scelto (default 18:00, da lunedì a venerdì). Se hai già segnato le ore della giornata non arriva (puoi disattivare questa opzione).
