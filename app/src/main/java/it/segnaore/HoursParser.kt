@@ -103,6 +103,72 @@ object HoursParser {
         return valid(hours)
     }
 
+    /** Risultato con ore lavorate e ore di viaggio (null = non dette). */
+    data class Parsed(val hours: Double?, val travel: Double?)
+
+    enum class Command { SUMMARY, REPORT, DELETE }
+
+    private val travelWord = Regex("\\b(viaggio|viaggi|trasferta|trasferte|guida)\\b")
+    private val connector = Regex(",|\\s+(e|più|piu|poi|piu')\\s+")
+
+    /**
+     * Riconosce anche le ore di viaggio:
+     * "otto e due di viaggio", "8 ore, viaggio 2", "otto ore e due ore e mezza di trasferta",
+     * "solo viaggio tre ore".
+     */
+    fun parseFull(input: String, fullDayHours: Double = 8.0): Parsed? {
+        val t = input.lowercase(Locale.ITALIAN).trim()
+        val m = travelWord.find(t)
+            ?: return parse(input, fullDayHours)?.let { Parsed(it, null) }
+
+        val before = t.substring(0, m.range.first).trim()
+        val after = t.substring(m.range.last + 1).trim()
+
+        val travelAfter = if (after.isNotEmpty()) parse(after, fullDayHours) else null
+        if (travelAfter != null) {
+            return Parsed(parse(before, fullDayHours), travelAfter)
+        }
+
+        // Viaggio detto prima della parola chiave: cerca il punto in cui separare
+        // lavoro e viaggio in modo che entrambe le parti abbiano senso.
+        val conn = connector.findAll(before).toList()
+        val endsWithHours = Regex("\\b(ore|ora|h)\\s*$")
+        val splits = mutableListOf<Pair<Int, Int>>() // (fine parte lavoro, inizio parte viaggio)
+        conn.filter { endsWithHours.containsMatchIn(before.substring(0, it.range.first)) }
+            .forEach { splits += it.range.first to it.range.last + 1 }
+        conn.reversed().forEach { splits += it.range.first to it.range.last + 1 }
+        numberStart.findAll(before).drop(1).toList().reversed()
+            .forEach { splits += it.range.first to it.range.first }
+
+        for ((endWork, startTravel) in splits) {
+            val work = parse(before.substring(0, endWork), fullDayHours) ?: continue
+            val travel = parse(before.substring(startTravel), fullDayHours) ?: continue
+            return Parsed(work, travel)
+        }
+        // "tre ore di viaggio" senza ore di lavoro
+        val travel = parse(before, fullDayHours) ?: return null
+        return Parsed(null, travel)
+    }
+
+    private val numberStart = Regex(
+        "\\b(\\d+|" + listOf(
+            "zero", "un", "uno", "una", "due", "tre", "quattro", "cinque", "sei", "sette",
+            "otto", "nove", "dieci", "undici", "dodici", "tredici", "quattordici", "quindici",
+            "sedici", "diciassette", "diciotto", "diciannove", "venti"
+        ).joinToString("|") + ")\\b"
+    )
+
+    fun command(input: String): Command? {
+        val t = input.lowercase(Locale.ITALIAN)
+        return when {
+            Regex("\\breport\\b|\\brapporto\\b").containsMatchIn(t) -> Command.REPORT
+            Regex("\\b(cancella|elimina|annulla)\\b").containsMatchIn(t) -> Command.DELETE
+            Regex("\\b(totale|totali|riepilogo|riassunto|straordinari|questo mese|del mese)\\b")
+                .containsMatchIn(t) -> Command.SUMMARY
+            else -> null
+        }
+    }
+
     private fun toToken(raw: String): Tok {
         if (raw.startsWith("+")) return Tok.Add(raw.substring(1).toDouble())
         if (raw.first().isDigit()) {

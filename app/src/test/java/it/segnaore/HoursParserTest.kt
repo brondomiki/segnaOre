@@ -27,4 +27,37 @@ class HoursParserTest {
         assertNull(p("boh"))
         assertNull(p("30"))
     }
+
+    @Test fun travel() {
+        val cases = listOf(
+            "otto e due di viaggio" to HoursParser.Parsed(8.0, 2.0),
+            "8 ore, viaggio 2" to HoursParser.Parsed(8.0, 2.0),
+            "otto ore e due ore e mezza di trasferta" to HoursParser.Parsed(8.0, 2.5),
+            "otto e mezza e un'ora di viaggio" to HoursParser.Parsed(8.5, 1.0),
+            "solo viaggio tre ore" to HoursParser.Parsed(null, 3.0),
+            "nove ore più due di viaggio" to HoursParser.Parsed(9.0, 2.0),
+            "sette e trenta e un'ora e mezza di viaggio" to HoursParser.Parsed(7.5, 1.5),
+            "10 ore lavoro 3 ore viaggio" to HoursParser.Parsed(10.0, 3.0),
+            "otto" to HoursParser.Parsed(8.0, null)
+        )
+        cases.forEach { (input, expected) -> assertEquals(input, expected, HoursParser.parseFull(input)) }
+    }
+
+    @Test fun commands() {
+        assertEquals(HoursParser.Command.REPORT, HoursParser.command("invia il report"))
+        assertEquals(HoursParser.Command.SUMMARY, HoursParser.command("riepilogo del mese"))
+        assertEquals(HoursParser.Command.DELETE, HoursParser.command("cancella"))
+        assertNull(HoursParser.command("otto ore"))
+    }
+
+    @Test fun overtime() {
+        // mercoledì 18/11/2026
+        assertEquals(WorkCalc.Split(8.0, 2.0, 0.0), WorkCalc.split(java.time.LocalDate.of(2026, 11, 18), 10.0))
+        // sabato
+        assertEquals(WorkCalc.Split(0.0, 5.0, 0.0), WorkCalc.split(java.time.LocalDate.of(2026, 11, 21), 5.0))
+        // domenica
+        assertEquals(WorkCalc.Split(0.0, 0.0, 4.0), WorkCalc.split(java.time.LocalDate.of(2026, 11, 22), 4.0))
+        // Pasquetta 2026 = 6 aprile
+        assertEquals(true, WorkCalc.isHoliday(java.time.LocalDate.of(2026, 4, 6)))
+    }
 }

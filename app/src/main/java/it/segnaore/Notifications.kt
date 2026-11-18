@@ -14,6 +14,7 @@ import androidx.core.app.Person
 import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -56,27 +57,51 @@ object Notifications {
     private fun me() = Person.Builder().setName("Io").setKey("me").build()
 
     fun showReminder(context: Context, date: LocalDate) {
-        val question = if (date == LocalDate.now()) {
-            "Quante ore hai lavorato oggi?"
-        } else {
-            "Quante ore hai lavorato ${dateLabel(date)}?"
-        }
+        val day = if (date == LocalDate.now()) "oggi" else dateLabel(date)
+        val question = "Quante ore hai lavorato $day? Se eri in trasferta aggiungi il viaggio, " +
+            "per esempio \"otto e due di viaggio\"."
         post(context, date, listOf(question to bot()), withQuickActions = true)
     }
 
     fun showRetry(context: Context, date: LocalDate, heard: String) {
-        val msg = "Non ho capito \"$heard\". Dimmi solo il numero di ore, " +
-            "per esempio \"otto\" o \"sette e mezza\"."
+        val msg = "Non ho capito \"$heard\". Dimmi le ore, per esempio \"otto\", " +
+            "\"sette e mezza\" oppure \"otto e due di viaggio\". " +
+            "Puoi anche dire \"riepilogo\" o \"invia report\"."
         post(context, date, listOf(heard to me(), msg to bot()), withQuickActions = true)
     }
 
-    fun showConfirmation(context: Context, date: LocalDate, hours: Double, heard: String?) {
-        val msg = "Fatto: ${HoursParser.format(hours)} segnate per ${dateLabel(date)}."
+    fun showConfirmation(context: Context, date: LocalDate, entry: Entry, heard: String?) {
+        val travel = if (entry.travel > 0) " più ${HoursParser.format(entry.travel)} di viaggio" else ""
+        val month = YearMonth.from(date)
+        val s = WorkCalc.summarize(
+            HoursRepository.between(month.atDay(1), month.atEndOfMonth())
+        )
+        val msg = "Fatto: ${HoursParser.format(entry.hours)}$travel per ${dateLabel(date)}. " +
+            "Nel mese: ${HoursParser.format(s.worked)}, di cui ${HoursParser.formatNumber(s.overtime + s.holiday)} di straordinario."
         val messages = buildList {
             if (!heard.isNullOrBlank()) add(heard to me())
             add(msg to bot())
         }
         post(context, date, messages, withQuickActions = false, timeoutMs = 5 * 60_000L)
+    }
+
+    /** Messaggio libero del bot (riepilogo, esito report...), con possibilità di rispondere. */
+    fun showInfo(context: Context, date: LocalDate, heard: String?, msg: String) {
+        val messages = buildList {
+            if (!heard.isNullOrBlank()) add(heard to me())
+            add(msg to bot())
+        }
+        post(context, date, messages, withQuickActions = false, timeoutMs = 10 * 60_000L)
+    }
+
+    fun summaryText(month: YearMonth): String {
+        val s = WorkCalc.summarize(HoursRepository.between(month.atDay(1), month.atEndOfMonth()))
+        val name = month.format(DateTimeFormatter.ofPattern("MMMM", Locale.ITALIAN))
+        return "Riepilogo di $name: ${s.days} giorni, ${HoursParser.format(s.worked)} lavorate. " +
+            "Ordinarie ${HoursParser.formatNumber(s.ordinary)}, " +
+            "straordinarie ${HoursParser.formatNumber(s.overtime)}, " +
+            "festive ${HoursParser.formatNumber(s.holiday)}, " +
+            "viaggio ${HoursParser.formatNumber(s.travel)}."
     }
 
     fun cancel(context: Context) = NotificationManagerCompat.from(context).cancel(NOTIF_ID)
@@ -106,7 +131,7 @@ object Notifications {
 
         val remoteInput = RemoteInput.Builder(KEY_REPLY)
             .setLabel("Quante ore?")
-            .setChoices(arrayOf("8", "7,5", "4", "0"))
+            .setChoices(arrayOf("8", "8 e 2 di viaggio", "4", "Riepilogo"))
             .build()
 
         val reply = NotificationCompat.Action.Builder(
