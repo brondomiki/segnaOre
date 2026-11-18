@@ -103,6 +103,16 @@
     </section>
 
     <section class="card">
+      <h2>Cambia password</h2>
+      <form id="pwForm" class="row">
+        <label class="grow">Nuova password<input id="newPw" type="password" minlength="6" autocomplete="new-password" required /></label>
+        <label class="grow">Ripeti<input id="newPw2" type="password" minlength="6" autocomplete="new-password" required /></label>
+        <button type="submit" class="ghost">Cambia</button>
+        <span id="pwMsg" class="msg"></span>
+      </form>
+    </section>
+
+    <section class="card">
       <h2>Report automatico</h2>
       <form id="settingsForm" class="row">
         <label class="grow">Email del report<input id="reportEmail" type="email" /></label>

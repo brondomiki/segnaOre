@@ -541,6 +541,35 @@ fun AccountCard(scope: CoroutineScope, toast: (String) -> Unit) {
     var email by remember { mutableStateOf("brondomiki@gmail.com") }
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var showPw by remember { mutableStateOf(false) }
+    var newPw by remember { mutableStateOf("") }
+
+    if (showPw) {
+        AlertDialog(
+            onDismissRequest = { showPw = false },
+            title = { Text("Cambia password") },
+            text = {
+                OutlinedTextField(
+                    value = newPw, onValueChange = { newPw = it },
+                    label = { Text("Nuova password (min. 6)") }, singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val pw = newPw
+                    showPw = false
+                    newPw = ""
+                    runCloud(scope, { busy = it }, toast) {
+                        Cloud.changePassword(context, pw)
+                        "Password cambiata"
+                    }
+                }) { Text("Cambia") }
+            },
+            dismissButton = { TextButton(onClick = { showPw = false }) { Text("Annulla") } }
+        )
+    }
 
     Card {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -600,6 +629,7 @@ fun AccountCard(scope: CoroutineScope, toast: (String) -> Unit) {
                             "Sincronizzato"
                         }
                     }) { Text("Sincronizza ora") }
+                    TextButton(onClick = { showPw = true }) { Text("Password") }
                     TextButton(onClick = { Cloud.signOut(context) }) { Text("Esci") }
                     if (busy) CircularProgressIndicator(Modifier.size(24.dp))
                 }

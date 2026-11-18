@@ -133,6 +133,12 @@ object Cloud {
         return false
     }
 
+    fun changePassword(ctx: Context, newPassword: String) {
+        if (newPassword.length < 6) throw CloudException("La password deve avere almeno 6 caratteri")
+        val r = http("PUT", "/auth/v1/user", JSONObject().put("password", newPassword).toString(), token(ctx))
+        if (r.code !in 200..299) throw CloudException(errorMessage(r))
+    }
+
     fun signOut(ctx: Context) {
         sp(ctx).edit().clear().apply()
         refreshStatus(ctx, null)

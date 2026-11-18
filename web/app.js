@@ -335,3 +335,14 @@ $("settingsForm").addEventListener("submit", async (e) => {
   }).eq("user_id", user.id);
   msg($("settingsMsg"), error ? error.message : "Salvato", error ? "err" : "ok");
 });
+
+// ---------- password ----------
+
+$("pwForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if ($("newPw").value !== $("newPw2").value) return msg($("pwMsg"), "Le password non coincidono", "err");
+  const { error } = await sb.auth.updateUser({ password: $("newPw").value });
+  if (error) return msg($("pwMsg"), error.message, "err");
+  $("pwForm").reset();
+  msg($("pwMsg"), "Password cambiata", "ok");
+});
