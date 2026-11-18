@@ -161,6 +161,7 @@ object Notifications {
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_clock)
+            .setColor(0xFF2F6FED.toInt())
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
