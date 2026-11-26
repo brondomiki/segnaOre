@@ -1,0 +1,50 @@
+name: Build Mensa APK
+
+on:
+  push:
+    branches: [main]
+    paths: ["mensa/**", ".github/workflows/build-mensa.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mensa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.11.1
+      - name: Test e build
+        run: |
+          set -o pipefail
+          gradle testDebugUnitTest assembleDebug --no-daemon 2>&1 | tee build.log
+      - name: Mostra errori
+        if: failure()
+        run: |
+          grep -E "^e: |error:|FAILED|AssertionError|expected|What went wrong" -A2 build.log | head -80 > errors.txt || true
+          [ -s errors.txt ] || tail -60 build.log > errors.txt
+          msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' errors.txt)
+          echo "::error title=Build fallita::$msg"
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Mensa.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mensa-apk
+          path: mensa/Mensa.apk
+      - name: Pubblica release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mensa-${{ github.run_number }}
+          name: Mensa build ${{ github.run_number }}
+          files: mensa/Mensa.apk
+          make_latest: false

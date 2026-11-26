@@ -3,7 +3,7 @@ name: Build APK
 on:
   push:
     branches: [main]
-    paths-ignore: ["web/**", "supabase/**", "README.md", "vercel.json"]
+    paths-ignore: ["web/**", "supabase/**", "README.md", "vercel.json", "mensa/**", ".github/workflows/build-mensa.yml"]
   workflow_dispatch:
 
 permissions:
