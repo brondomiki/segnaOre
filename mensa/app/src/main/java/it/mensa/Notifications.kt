@@ -45,7 +45,7 @@ object Notifications {
     }
 
     fun showMenu(context: Context, menu: Menu, heard: String? = null) =
-        post(context, heard, Scelta.messaggiMenu(menu), replyable = menu.piatti.isNotEmpty())
+        post(context, heard, listOf(Scelta.testoMenu(menu)), replyable = menu.piatti.isNotEmpty())
 
     fun showInfo(context: Context, heard: String?, vararg msg: String, replyable: Boolean = true) =
         post(context, heard, msg.toList(), replyable)

@@ -12,6 +12,9 @@ In auto **Android Auto** te lo legge e tu rispondi a voce: l'app fa l'ordine sul
 
 Android Auto: stesse impostazioni di SegnaOre (Fonti sconosciute nelle impostazioni sviluppatore di Android Auto).
 
+Fino alle 8:30 il menu e l'ordine sono per oggi, dopo per il giorno lavorativo successivo.
+Toccando la notifica si apre l'app con il menu completo e le caselle per ordinare a mano.
+
 ## Cosa puoi rispondere
 
 - numeri: "uno, undici e ventuno"

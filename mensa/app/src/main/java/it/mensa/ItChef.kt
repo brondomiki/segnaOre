@@ -5,6 +5,8 @@ import java.net.URL
 import java.net.URLEncoder
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 data class Piatto(
     val n: Int,
@@ -101,10 +103,16 @@ class ItChef(private val user: String, private val pass: String) {
             "IdDieta" to "3"
         )
 
-        /** Giorno da prenotare: oggi + [anticipo] giorni, saltando sabato e domenica. */
-        fun giornoDaPrenotare(anticipo: Int, oggi: LocalDate = LocalDate.now()): LocalDate {
-            var d = oggi.plusDays(anticipo.toLong())
-            while (d.dayOfWeek == DayOfWeek.SATURDAY || d.dayOfWeek == DayOfWeek.SUNDAY) d = d.plusDays(1)
+        /** Fino alle 8:30 si può ordinare per oggi. */
+        val ORARIO_LIMITE: LocalTime = LocalTime.of(8, 30)
+
+        /** Oggi se è un giorno feriale prima delle 8:30, altrimenti il giorno lavorativo successivo. */
+        fun giornoDaPrenotare(adesso: LocalDateTime = LocalDateTime.now()): LocalDate {
+            fun feriale(d: LocalDate) = d.dayOfWeek != DayOfWeek.SATURDAY && d.dayOfWeek != DayOfWeek.SUNDAY
+            val oggi = adesso.toLocalDate()
+            if (feriale(oggi) && adesso.toLocalTime().isBefore(ORARIO_LIMITE)) return oggi
+            var d = oggi.plusDays(1)
+            while (!feriale(d)) d = d.plusDays(1)
             return d
         }
     }

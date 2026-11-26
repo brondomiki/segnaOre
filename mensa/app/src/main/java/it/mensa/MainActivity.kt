@@ -25,7 +25,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -74,9 +77,10 @@ private fun Schermata() {
     var enabled by remember { mutableStateOf(prefs.enabled) }
     var hour by remember { mutableStateOf(prefs.hour) }
     var minute by remember { mutableStateOf(prefs.minute) }
-    var anticipo by remember { mutableStateOf(prefs.anticipo) }
     var esito by remember { mutableStateOf(prefs.ultimoEsito) }
     var lavoro by remember { mutableStateOf(false) }
+    var credOk by remember { mutableStateOf(prefs.user.isNotBlank() && prefs.pass.isNotBlank()) }
+    var versione by remember { mutableStateOf(0) }
     var notifOk by remember { mutableStateOf(Notifications.canPost(ctx)) }
     var exactOk by remember { mutableStateOf(Scheduler.canScheduleExact(ctx)) }
 
@@ -95,8 +99,10 @@ private fun Schermata() {
 
     fun salva() {
         prefs.user = user; prefs.pass = pass; prefs.enabled = enabled
-        prefs.hour = hour; prefs.minute = minute; prefs.anticipo = anticipo
+        prefs.hour = hour; prefs.minute = minute
         Scheduler.scheduleNext(ctx)
+        credOk = user.isNotBlank() && pass.isNotBlank()
+        versione++
     }
 
     Column(
@@ -105,6 +111,8 @@ private fun Schermata() {
     ) {
         Text("🍽 Mensa", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text("Ogni giorno lavorativo ti arriva il menu ITChef come messaggio. In auto Android Auto te lo legge e tu rispondi a voce con i numeri dei piatti.")
+
+        if (credOk) androidx.compose.runtime.key(versione) { MenuOggi() }
 
         if (!notifOk) Card { Column(Modifier.padding(14.dp)) {
             Text("Le notifiche sono disattivate: senza, il menu non arriva.")
@@ -139,11 +147,8 @@ private fun Schermata() {
             TimePickerDialog(ctx, { _, h, m -> hour = h; minute = m }, hour, minute, true).show()
         }) { Text("Orario: %02d:%02d".format(hour, minute)) }
 
-        Text("Ordina per", fontWeight = FontWeight.SemiBold)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(anticipo == 0, { anticipo = 0 }, label = { Text("Oggi") })
-            FilterChip(anticipo == 1, { anticipo = 1 }, label = { Text("Giorno lavorativo dopo") })
-        }
+        Text("Fino alle 8:30 l'app ordina per oggi, dopo per il giorno lavorativo successivo.",
+            style = MaterialTheme.typography.bodySmall)
 
         Button(onClick = { salva() }, modifier = Modifier.fillMaxWidth()) { Text("Salva") }
         OutlinedButton(
@@ -170,4 +175,71 @@ private fun Schermata() {
             Text("Come per SegnaOre: in Android Auto → tocca 10 volte \"Versione\" → menu ⋮ → Impostazioni sviluppatore → attiva \"Fonti sconosciute\".")
         } }
     }
+}
+
+@Composable
+private fun MenuOggi() {
+    val ctx = LocalContext.current
+    var stato by remember { mutableStateOf("Leggo il menu…") }
+    var dati by remember { mutableStateOf<Pair<ItChef, Menu>?>(null) }
+    val scelti = remember { mutableStateListOf<String>() }
+    var occupato by remember { mutableStateOf(true) }
+
+    fun carica() {
+        occupato = true; stato = "Leggo il menu…"
+        thread {
+            try {
+                val r = Azioni.caricaMenu(ctx.applicationContext)
+                dati = r
+                scelti.clear(); scelti.addAll(r.second.piatti.filter { it.prenotato }.map { it.code })
+                stato = if (r.second.piatti.isEmpty()) "Nessun menu per ${Scelta.giorno(r.second.data)}." else ""
+            } catch (e: Exception) {
+                stato = "Non riesco a leggere il menu: ${e.message}"
+            }
+            occupato = false
+        }
+    }
+    LaunchedEffect(Unit) { carica() }
+
+    Card { Column(Modifier.padding(14.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val menu = dati?.second
+        Text(
+            if (menu != null) "Menu di ${Scelta.giorno(menu.data)}" else "Menu",
+            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+        )
+        if (stato.isNotBlank()) Text(stato)
+        if (menu != null && menu.piatti.isNotEmpty()) {
+            val titoli = mapOf("Primo" to "Primi", "Secondo" to "Secondi", "Contorno" to "Contorni", "PiattoUnico" to "Piatto unico")
+            for ((cat, piatti) in menu.piatti.groupBy { it.categoria }) {
+                Spacer(Modifier.width(1.dp))
+                Text(titoli[cat] ?: cat, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                HorizontalDivider()
+                for (p in piatti) {
+                    val on = p.code in scelti
+                    Row(
+                        Modifier.fillMaxWidth().clickable { if (on) scelti.remove(p.code) else scelti.add(p.code) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(on, { if (it) scelti.add(p.code) else scelti.remove(p.code) })
+                        Text("${p.n}. ${Scelta.bello(p.nome)}")
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(enabled = !occupato && scelti.isNotEmpty(), onClick = {
+                    val (client, m) = dati ?: return@Button
+                    val lista = m.piatti.filter { it.code in scelti }
+                    occupato = true; stato = "Invio l'ordine…"
+                    thread {
+                        stato = try { Azioni.ordinaDaApp(ctx.applicationContext, client, m, lista) }
+                        catch (e: Exception) { "Errore: ${e.message}" }
+                        occupato = false
+                    }
+                }) { Text("Ordina") }
+                OutlinedButton(enabled = !occupato, onClick = { carica() }) { Text("Aggiorna") }
+            }
+        } else if (!occupato) {
+            OutlinedButton(onClick = { carica() }) { Text("Riprova") }
+        }
+    } }
 }

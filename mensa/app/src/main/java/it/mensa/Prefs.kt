@@ -27,11 +27,6 @@ class Prefs(context: Context) {
         get() = sp.getInt("minute", 30)
         set(v) = sp.edit().putInt("minute", v).apply()
 
-    /** 0 = ordina per oggi, 1 = per il giorno lavorativo successivo. */
-    var anticipo: Int
-        get() = sp.getInt("anticipo", 1)
-        set(v) = sp.edit().putInt("anticipo", v).apply()
-
     var ultimoEsito: String
         get() = sp.getString("ultimo_esito", "") ?: ""
         set(v) = sp.edit().putString("ultimo_esito", v).apply()

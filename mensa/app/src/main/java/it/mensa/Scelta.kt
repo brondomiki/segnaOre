@@ -88,19 +88,25 @@ object Scelta {
         else -> d.format(giornoFmt)
     }
 
-    /** Un messaggio per categoria: Android Auto li legge uno dopo l'altro. */
-    fun messaggiMenu(menu: Menu): List<String> {
-        if (menu.piatti.isEmpty()) return listOf("Non c'è nessun menu per ${giorno(menu.data)}.")
-        val out = ArrayList<String>()
-        out += "Menu di ${giorno(menu.data)}."
+    /**
+     * Tutto il menu in un solo messaggio: così Android Auto lo legge per intero
+     * e sul telefono non restano nascosti i primi.
+     */
+    fun testoMenu(menu: Menu): String {
+        if (menu.piatti.isEmpty()) return "Non c'è nessun menu per ${giorno(menu.data)}."
+        val sb = StringBuilder("Menu di ${giorno(menu.data)}.")
         for ((cat, piatti) in menu.piatti.groupBy { it.categoria }) {
-            val titolo = CATEGORIE[cat] ?: cat
-            out += "$titolo: " + piatti.joinToString("; ") { "${it.n}, ${bello(it.nome)}" + if (it.prenotato) " (ordinato)" else "" } + "."
+            sb.append("\n").append(CATEGORIE[cat] ?: cat).append(": ")
+            sb.append(piatti.joinToString("; ") { "${it.n}, ${bello(it.nome)}" + if (it.prenotato) " (ordinato)" else "" })
+            sb.append(".")
         }
         val gia = menu.piatti.filter { it.prenotato }
-        out += if (gia.isNotEmpty()) "Hai già ordinato: ${elenco(gia)}. Rispondi con altri numeri per cambiare."
-        else "Rispondi con i numeri dei piatti, per esempio: uno, undici e ventuno."
-        return out
+        sb.append("\n")
+        sb.append(
+            if (gia.isNotEmpty()) "Hai già ordinato: ${elenco(gia)}. Rispondi con altri numeri per cambiare."
+            else "Rispondi con i numeri dei piatti."
+        )
+        return sb.toString()
     }
 
     fun elenco(piatti: List<Piatto>) = piatti.joinToString(", ") { bello(it.nome) }

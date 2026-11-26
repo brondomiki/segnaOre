@@ -31,7 +31,7 @@ object Azioni {
     fun inviaMenu(context: Context, heard: String? = null) {
         val prefs = Prefs(context)
         try {
-            val menu = prefs.client().caricaMenu(ItChef.giornoDaPrenotare(prefs.anticipo))
+            val menu = prefs.client().caricaMenu(ItChef.giornoDaPrenotare())
             Notifications.showMenu(context, menu, heard)
             esito(context, "menu inviato (${menu.piatti.size} piatti)")
         } catch (e: Exception) {
@@ -40,11 +40,26 @@ object Azioni {
         }
     }
 
+    /** Per la schermata dell'app: carica il menu (lancia eccezione se non riesce). */
+    fun caricaMenu(context: Context): Pair<ItChef, Menu> {
+        val client = Prefs(context).client()
+        return client to client.caricaMenu(ItChef.giornoDaPrenotare())
+    }
+
+    /** Ordine dall'app. Ritorna il messaggio da mostrare. */
+    fun ordinaDaApp(context: Context, client: ItChef, menu: Menu, scelti: List<Piatto>): String {
+        val errore = client.prenota(menu, scelti)
+        val msg = if (errore == null) "Fatto! Ordinato per ${Scelta.giorno(menu.data)}: ${Scelta.elenco(scelti)}."
+        else "Il portale non ha accettato l'ordine: $errore"
+        esito(context, msg)
+        return msg
+    }
+
     fun rispondi(context: Context, testo: String) {
         val prefs = Prefs(context)
         try {
             val client = prefs.client()
-            val menu = client.caricaMenu(ItChef.giornoDaPrenotare(prefs.anticipo))
+            val menu = client.caricaMenu(ItChef.giornoDaPrenotare())
             when (Scelta.comando(testo)) {
                 Scelta.Comando.MENU -> { Notifications.showMenu(context, menu, testo); return }
                 Scelta.Comando.ORDINE -> {

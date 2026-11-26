@@ -60,16 +60,17 @@ class MensaTest {
     }
 
     @Test fun giornoLavorativo() {
-        val giovedi = LocalDate.of(2026, 11, 26)
-        assertEquals(LocalDate.of(2026, 11, 27), ItChef.giornoDaPrenotare(1, giovedi))
-        assertEquals(LocalDate.of(2026, 11, 30), ItChef.giornoDaPrenotare(2, giovedi))
-        assertEquals(LocalDate.of(2026, 11, 30), ItChef.giornoDaPrenotare(1, LocalDate.of(2026, 11, 27)))
+        fun at(g: Int, h: Int, m: Int) = java.time.LocalDateTime.of(2026, 11, g, h, m)
+        assertEquals(LocalDate.of(2026, 11, 26), ItChef.giornoDaPrenotare(at(26, 7, 40)))  // giovedì prima delle 8:30
+        assertEquals(LocalDate.of(2026, 11, 27), ItChef.giornoDaPrenotare(at(26, 8, 30)))  // giovedì dalle 8:30
+        assertEquals(LocalDate.of(2026, 11, 30), ItChef.giornoDaPrenotare(at(27, 9, 0)))   // venerdì dopo → lunedì
+        assertEquals(LocalDate.of(2026, 11, 30), ItChef.giornoDaPrenotare(at(28, 7, 0)))   // sabato → lunedì
     }
 
     @Test fun testoMenu() {
         val m = Menu(LocalDate.of(2026, 11, 27), piatti, "u", emptyMap())
-        val msg = Scelta.messaggiMenu(m)
-        assertTrue(msg[1].startsWith("Primi: 1, Fusilli al tonno e olive"))
-        assertTrue(msg.last().contains("Hai già ordinato"))
+        val t = Scelta.testoMenu(m)
+        assertTrue(t.contains("\nPrimi: 1, Fusilli al tonno e olive; 2, Fusilli all' olio."))
+        assertTrue(t.contains("Hai già ordinato"))
     }
 }
