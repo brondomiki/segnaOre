@@ -45,6 +45,21 @@ class MensaTest {
         assertEquals(listOf(1), n("1 1"))
     }
 
+    @Test fun numeriAttaccati() {
+        assertEquals(listOf(1, 11, 21), Scelta.numeri("11121", 28))
+        assertEquals(listOf(1, 11, 21), Scelta.numeri("1 1121", 28))
+        assertEquals(listOf(3, 12, 25), Scelta.numeri("31225", 28))
+        assertEquals(listOf(1, 11, 21), Scelta.numeri("1, 11 e 21", 28))
+        assertEquals(listOf(12, 21), Scelta.numeri("12e21", 28))
+        assertEquals(listOf(5, 13), Scelta.numeri("cinque 13", 28))
+        assertEquals(listOf(20, 1), Scelta.numeri("201", 28))
+        assertEquals(listOf(2, 12, 23), Scelta.numeri("2 1223", 28))
+        assertEquals(listOf(2, 12, 23), Scelta.numeri("21223", 28))
+        assertEquals(listOf(2, 12, 23), Scelta.numeri("2, 12, 23", 28))
+        assertEquals(listOf(2, 12, 23), Scelta.numeri("due dodici ventitré", 28))
+        assertEquals(Scelta.Comando.AGGIUNGI, Scelta.comando("Aggiungi 21"))
+    }
+
     @Test fun nomi() {
         assertEquals(listOf(1, 4), n("fusilli al tonno, patate"))
         assertEquals(listOf(3, 4), n("fettina e patate"))

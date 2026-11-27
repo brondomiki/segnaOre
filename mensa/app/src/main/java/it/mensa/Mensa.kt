@@ -60,7 +60,8 @@ object Azioni {
         try {
             val client = prefs.client()
             val menu = client.caricaMenu(ItChef.giornoDaPrenotare())
-            when (Scelta.comando(testo)) {
+            val comando = Scelta.comando(testo)
+            when (comando) {
                 Scelta.Comando.MENU -> { Notifications.showMenu(context, menu, testo); return }
                 Scelta.Comando.ORDINE -> {
                     val gia = menu.piatti.filter { it.prenotato }
@@ -71,13 +72,16 @@ object Azioni {
                     )
                     return
                 }
-                null -> Unit
+                Scelta.Comando.AGGIUNGI, null -> Unit
             }
             if (menu.piatti.isEmpty()) {
                 Notifications.showInfo(context, testo, "Non c'è nessun menu per ${Scelta.giorno(menu.data)}.")
                 return
             }
-            val scelti = Scelta.interpreta(testo, menu.piatti)
+            val nuovi = Scelta.interpreta(testo, menu.piatti)
+            // "aggiungi ventuno": si somma a quello già ordinato
+            val scelti = if (comando == Scelta.Comando.AGGIUNGI && nuovi.isNotEmpty())
+                (menu.piatti.filter { it.prenotato } + nuovi).distinct() else nuovi
             if (scelti.isEmpty()) {
                 Notifications.showInfo(
                     context, testo,
@@ -87,9 +91,13 @@ object Azioni {
             }
             val errore = client.prenota(menu, scelti)
             if (errore == null) {
+                val numeri = scelti.joinToString(", ") { it.n.toString() }
                 val msg = "Fatto! Ordinato per ${Scelta.giorno(menu.data)}: ${Scelta.elenco(scelti)}."
-                Notifications.showInfo(context, testo, msg, replyable = false)
-                esito(context, msg)
+                Notifications.showInfo(
+                    context, testo, msg,
+                    "Se manca qualcosa di' \"aggiungi\" e il numero, per esempio \"aggiungi ventuno\"."
+                )
+                esito(context, "ho sentito \"$testo\" → piatti $numeri. $msg")
             } else {
                 Notifications.showInfo(context, testo, "Il portale non ha accettato l'ordine: $errore")
                 esito(context, "ordine rifiutato: $errore")

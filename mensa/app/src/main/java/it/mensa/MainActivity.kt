@@ -168,6 +168,7 @@ private fun Schermata() {
             Text("• I nomi: \"fusilli al tonno, fettina e patate\"")
             Text("• \"Menu\" per riascoltarlo")
             Text("• \"Cosa ho ordinato\"")
+            Text("• \"Aggiungi ventuno\" se manca un piatto")
             Text("Per cambiare l'ordine basta rispondere di nuovo con altri piatti.")
         } }
         Card { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

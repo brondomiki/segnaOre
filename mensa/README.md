@@ -20,6 +20,7 @@ Toccando la notifica si apre l'app con il menu completo e le caselle per ordinar
 - numeri: "uno, undici e ventuno"
 - nomi: "fusilli al tonno, fettina e patate"
 - "menu" per riascoltarlo, "cosa ho ordinato"
+- "aggiungi ventuno" per aggiungere un piatto a quelli già ordinati
 
 Per cambiare l'ordine rispondi di nuovo con altri piatti: la nuova scelta sostituisce la precedente.
 
